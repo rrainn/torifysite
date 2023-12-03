@@ -1,3 +1,5 @@
+import { TorifySiteOptions } from ".";
+
 export interface Rule {
 	id: string;
 	description: string;
@@ -17,7 +19,7 @@ export interface Rule {
 	 * @param contents The contents of the file.
 	 * @returns An array of violations. If no violations are found, an empty array should be returned.
 	 */
-	check?(path: string, contents: Buffer): Promise<Violation[]>;
+	check?(path: string, contents: Buffer, globalOptions: TorifySiteOptions): Promise<Violation[]>;
 
 	/**
 	 * Fix this rule.
@@ -25,7 +27,7 @@ export interface Rule {
 	 * @param contents The contents of the file.
 	 * @returns The fixed contents of the file.
 	 */
-	fix?(path: string, contents: Buffer): Promise<Buffer>;
+	fix?(path: string, contents: Buffer, globalOptions: TorifySiteOptions): Promise<Buffer>;
 }
 
 export interface Violation {

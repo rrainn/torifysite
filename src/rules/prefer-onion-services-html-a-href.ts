@@ -20,7 +20,7 @@ const rule: Rule = {
 		}
 	],
 
-	"check": async (path, contents): Promise<Violation[]> => {
+	"check": async (path, contents, options): Promise<Violation[]> => {
 		const $ = cheerio.load(contents.toString());
 
 		const violations: Violation[] = (await Promise.all($("a").toArray().map(async (e) => {
@@ -46,21 +46,34 @@ const rule: Rule = {
 			}
 
 			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+				let onionLocation;
+
 				// Make request to the clearnet domain and see if it redirects to an onion service.
-				let response;
-				try {
-					response = await fetchCmd(href, {
-						"method": "GET",
-						"headers": {
-							"User-Agent": userAgent
-						}
-					});
-				} catch (error) {
-					return {
-						"message": `Failed to fetch ${href}.`
-					};
+				const knownOnionLocation = options.knownOnionLocations[parsed.origin];
+				if (knownOnionLocation) {
+					const knownOnionLocationURL = new url.URL(knownOnionLocation);
+					parsed.hostname = knownOnionLocationURL.hostname;
+					parsed.protocol = knownOnionLocationURL.protocol;
+
+					onionLocation = parsed.toString();
+				} else {
+					let response;
+					try {
+						response = await fetchCmd(href, {
+							"method": "GET",
+							"headers": {
+								"User-Agent": userAgent
+							}
+						});
+					} catch (error) {
+						return {
+							"message": `Failed to fetch ${href}.`
+						};
+					}
+
+					onionLocation = response.headers.get("onion-location");
 				}
-				const onionLocation = response.headers.get("onion-location");
+
 				if (onionLocation) {
 					return {
 						"message": `Using clearnet domain ${href} instead of onion service ${onionLocation}.`
@@ -73,7 +86,7 @@ const rule: Rule = {
 
 		return violations;
 	},
-	"fix": async (path, contents): Promise<Buffer> => {
+	"fix": async (path, contents, options): Promise<Buffer> => {
 		const $ = cheerio.load(contents.toString());
 
 		(await Promise.all($("a").toArray().map(async (e) => {
@@ -99,21 +112,34 @@ const rule: Rule = {
 			}
 
 			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+				let onionLocation;
+
 				// Make request to the clearnet domain and see if it redirects to an onion service.
-				let response;
-				try {
-					response = await fetchCmd(href, {
-						"method": "GET",
-						"headers": {
-							"User-Agent": userAgent
-						}
-					});
-				} catch (error) {
-					return {
-						"message": `Failed to fetch ${href}.`
-					};
+				const knownOnionLocation = options.knownOnionLocations[parsed.origin];
+				if (knownOnionLocation) {
+					const knownOnionLocationURL = new url.URL(knownOnionLocation);
+					parsed.hostname = knownOnionLocationURL.hostname;
+					parsed.protocol = knownOnionLocationURL.protocol;
+
+					onionLocation = parsed.toString();
+				} else {
+					let response;
+					try {
+						response = await fetchCmd(href, {
+							"method": "GET",
+							"headers": {
+								"User-Agent": userAgent
+							}
+						});
+					} catch (error) {
+						return {
+							"message": `Failed to fetch ${href}.`
+						};
+					}
+
+					onionLocation = response.headers.get("onion-location");
 				}
-				const onionLocation = response.headers.get("onion-location");
+
 				if (onionLocation) {
 					$(e).attr("href", onionLocation);
 				}

@@ -31,11 +31,11 @@ export class TorifySite {
 
 	async #runRule(rule: Rule, pathString: string, fileContents: Buffer): Promise<CompleteViolation[]> {
 		if (this.options.fix && rule.fix !== undefined) {
-			const newContents = await rule.fix?.(pathString, fileContents);
+			const newContents = await rule.fix?.(pathString, fileContents, this.options);
 			await fs.writeFile(pathString, newContents);
 			return [];
 		} else {
-			const violations = await rule.check?.(pathString, fileContents);
+			const violations = await rule.check?.(pathString, fileContents, this.options);
 			if (violations) {
 				return violations.map((violation) => {
 					return {
@@ -87,4 +87,15 @@ export interface TorifySiteOptions {
 	rules: string[];
 	ignore: string[];
 	exclude: string[];
+
+	/**
+	 * A list of known onion hosts and their locations.
+	 *
+	 * The key being the original clearnet host, and the value being the onion host.
+	 *
+	 * @example {
+	 * 	"https://charlie.fish": "http://charlie2bm2qrzthb4a6ew6u5y4vghjcqj4jv6n26knrjlzb5xd7zfid.onion"
+	 * }
+	 */
+	knownOnionLocations: {[key: string]: string};
 }

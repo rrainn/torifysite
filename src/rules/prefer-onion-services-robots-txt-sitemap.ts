@@ -16,7 +16,7 @@ const rule: Rule = {
 		}
 	],
 
-	"check": async (path, contents): Promise<Violation[]> => {
+	"check": async (path, contents, options): Promise<Violation[]> => {
 		const contentsString = contents.toString();
 		const sitemap = contentsString.match(/^Sitemap: (.*)$/m);
 		if (!sitemap) {
@@ -33,25 +33,38 @@ const rule: Rule = {
 
 		if (parsed.protocol === "http:" || parsed.protocol === "https:") {
 			// Make request to the clearnet domain and see if it redirects to an onion service.
-			const response = await fetchCmd(href, {
-				"method": "GET",
-				"headers": {
-					"User-Agent": userAgent
-				}
-			});
-			const onionLocation = response.headers.get("onion-location");
-			if (onionLocation) {
+			const knownOnionLocation = options.knownOnionLocations[parsed.origin];
+			if (knownOnionLocation) {
+				const knownOnionLocationURL = new url.URL(knownOnionLocation);
+				parsed.hostname = knownOnionLocationURL.hostname;
+				parsed.protocol = knownOnionLocationURL.protocol;
+
 				return [
 					{
-						"message": `Using clearnet domain ${href} instead of onion service ${onionLocation}.`
+						"message": `Using clearnet domain ${href} instead of onion service ${parsed.toString()}.`
 					}
 				];
+			} else {
+				const response = await fetchCmd(href, {
+					"method": "GET",
+					"headers": {
+						"User-Agent": userAgent
+					}
+				});
+				const onionLocation = response.headers.get("onion-location");
+				if (onionLocation) {
+					return [
+						{
+							"message": `Using clearnet domain ${href} instead of onion service ${onionLocation}.`
+						}
+					];
+				}
 			}
 		}
 
 		return [];
 	},
-	"fix": async (path, contents): Promise<Buffer> => {
+	"fix": async (path, contents, options): Promise<Buffer> => {
 		const contentsString = contents.toString();
 		const sitemap = contentsString.match(/^Sitemap: (.*)$/m);
 		if (!sitemap) {
@@ -68,15 +81,24 @@ const rule: Rule = {
 
 		if (parsed.protocol === "http:" || parsed.protocol === "https:") {
 			// Make request to the clearnet domain and see if it redirects to an onion service.
-			const response = await fetchCmd(href, {
-				"method": "GET",
-				"headers": {
-					"User-Agent": userAgent
+			const knownOnionLocation = options.knownOnionLocations[parsed.origin];
+			if (knownOnionLocation) {
+				const knownOnionLocationURL = new url.URL(knownOnionLocation);
+				parsed.hostname = knownOnionLocationURL.hostname;
+				parsed.protocol = knownOnionLocationURL.protocol;
+
+				return Buffer.from(contentsString.replace(href, parsed.toString()));
+			} else {
+				const response = await fetchCmd(href, {
+					"method": "GET",
+					"headers": {
+						"User-Agent": userAgent
+					}
+				});
+				const onionLocation = response.headers.get("onion-location");
+				if (onionLocation) {
+					return Buffer.from(contentsString.replace(href, onionLocation));
 				}
-			});
-			const onionLocation = response.headers.get("onion-location");
-			if (onionLocation) {
-				return Buffer.from(contentsString.replace(href, onionLocation));
 			}
 		}
 

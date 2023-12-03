@@ -4,6 +4,7 @@ import { program } from "commander";
 import { TorifySite, TorifySiteOptions } from "./index";
 import { CompleteViolation } from "./Rule";
 import * as pathPkg from "path";
+import * as fs from "fs";
 
 const packageJSON = require("../package.json");
 
@@ -17,7 +18,10 @@ program
 	.option("-f, --fix", "Fix violations automatically.", false)
 	.option("-r, --rules <rules>", "Specify which rules to run. If not specified, all default rules will be run.", (value) => value.split(","), [])
 	.option("-i, --ignore <ignore>", "Specify which rules to ignore. If not specified, no rules will be ignored.", (value) => value.split(","), [])
-	.option("-e, --exclude <exclude>", "Specify which files to exclude. If not specified, no files will be excluded.", (value) => value.split(","), []);
+	.option("-e, --exclude <exclude>", "Specify which files to exclude. If not specified, no files will be excluded.", (value) => value.split(","), [])
+	.option("--known-onion-locations <knownOnionLocations>", "Specify a JSON file of known onion hosts and their locations. The key being the original clearnet host, and the value being the onion host.", (value) => {
+		return JSON.parse(fs.readFileSync(pathPkg.isAbsolute(value) ? value : pathPkg.join(process.cwd(), value)).toString());
+	}, {});
 
 program.parse(process.argv);
 
