@@ -7,7 +7,7 @@ import fetchCmd from "../utils/fetch";
 
 const ignoreDomains = [
 	"twitter.com"
-]
+];
 
 const rule: Rule = {
 	"id": "prefer-onion-services-a-href",
@@ -35,14 +35,20 @@ const rule: Rule = {
 				return;
 			}
 
-			const parsed = new url.URL(href);
+			let parsed: url.URL;
+			try {
+				parsed = new url.URL(href);
+			} catch (error) {
+				console.warn(`Failed to parse URL ${href}.`);
+				return;
+			}
 			if (parsed.hostname.endsWith(".onion")) {
 				// Not violated if the hostname is already an onion service.
 				return;
 			}
 
 			if (ignoreDomains.some((domain) => parsed.hostname.includes(domain))) {
-				return
+				return;
 			}
 
 			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
@@ -101,14 +107,20 @@ const rule: Rule = {
 				return;
 			}
 
-			const parsed = new url.URL(href);
+			let parsed: url.URL;
+			try {
+				parsed = new url.URL(href);
+			} catch (error) {
+				console.warn(`Failed to parse URL ${href}.`);
+				return;
+			}
 			if (parsed.hostname.endsWith(".onion")) {
 				// Not violated if the hostname is already an onion service.
 				return;
 			}
 
 			if (ignoreDomains.some((domain) => parsed.hostname.includes(domain))) {
-				return
+				return;
 			}
 
 			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
