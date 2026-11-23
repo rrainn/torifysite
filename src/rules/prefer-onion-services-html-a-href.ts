@@ -2,8 +2,7 @@ import { Rule, Violation } from "../Rule";
 
 import * as cheerio from "cheerio";
 import * as url from "url";
-import userAgent from "../utils/user-agent";
-import fetchCmd from "../utils/fetch";
+import fetchOnionLocation from "../utils/fetch";
 
 const ignoreDomains = [
 	"twitter.com"
@@ -63,21 +62,11 @@ const rule: Rule = {
 
 					onionLocation = parsed.toString();
 				} else {
-					let response;
-					try {
-						response = await fetchCmd(href, {
-							"method": "GET",
-							"headers": {
-								"User-Agent": userAgent
-							}
-						});
-					} catch (error) {
-						return {
-							"message": `Failed to fetch ${href}.`
-						};
+					const lookup = await fetchOnionLocation(parsed);
+					if ("error" in lookup) {
+						return { message: lookup.error };
 					}
-
-					onionLocation = response.headers.get("onion-location");
+					onionLocation = lookup.location;
 				}
 
 				if (onionLocation) {
@@ -135,21 +124,12 @@ const rule: Rule = {
 
 					onionLocation = parsed.toString();
 				} else {
-					let response;
-					try {
-						response = await fetchCmd(href, {
-							"method": "GET",
-							"headers": {
-								"User-Agent": userAgent
-							}
-						});
-					} catch (error) {
-						return {
-							"message": `Failed to fetch ${href}.`
-						};
+					const lookup = await fetchOnionLocation(parsed);
+					if ("error" in lookup) {
+						console.warn(lookup.error);
+						return;
 					}
-
-					onionLocation = response.headers.get("onion-location");
+					onionLocation = lookup.location;
 				}
 
 				if (onionLocation) {

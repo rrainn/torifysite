@@ -2,8 +2,7 @@ import { Rule, Violation } from "../Rule";
 
 import * as cheerio from "cheerio";
 import * as url from "url";
-import userAgent from "../utils/user-agent";
-import fetchCmd from "../utils/fetch";
+import fetchOnionLocation from "../utils/fetch";
 
 const rule: Rule = {
 	"id": "prefer-onion-services-robots-txt-sitemap",
@@ -45,13 +44,11 @@ const rule: Rule = {
 					}
 				];
 			} else {
-				const response = await fetchCmd(href, {
-					"method": "GET",
-					"headers": {
-						"User-Agent": userAgent
-					}
-				});
-				const onionLocation = response.headers.get("onion-location");
+				const lookup = await fetchOnionLocation(parsed);
+				if ("error" in lookup) {
+					return [{ message: lookup.error }];
+				}
+				const onionLocation = lookup.location;
 				if (onionLocation) {
 					return [
 						{
@@ -89,13 +86,12 @@ const rule: Rule = {
 
 				return Buffer.from(contentsString.replace(href, parsed.toString()));
 			} else {
-				const response = await fetchCmd(href, {
-					"method": "GET",
-					"headers": {
-						"User-Agent": userAgent
-					}
-				});
-				const onionLocation = response.headers.get("onion-location");
+				const lookup = await fetchOnionLocation(parsed);
+				if ("error" in lookup) {
+					console.warn(lookup.error);
+					return Buffer.from(contentsString);
+				}
+				const onionLocation = lookup.location;
 				if (onionLocation) {
 					return Buffer.from(contentsString.replace(href, onionLocation));
 				}
